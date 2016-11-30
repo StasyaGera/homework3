@@ -1,6 +1,7 @@
 package com.hometasks.penguinni.homework3.loader;
 
 import android.content.Context;
+import android.graphics.BitmapFactory;
 import android.os.AsyncTask;
 import android.support.v4.util.Pair;
 import android.util.Log;
@@ -9,11 +10,14 @@ import com.hometasks.penguinni.homework3.HW3Activity;
 import com.hometasks.penguinni.homework3.api.VKApi;
 
 import java.io.File;
+import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.io.InputStream;
+import java.io.PrintWriter;
 import java.net.HttpURLConnection;
 import java.net.URL;
 import java.util.List;
+import java.util.Scanner;
 import java.util.concurrent.ExecutionException;
 
 /**
@@ -25,12 +29,35 @@ public class ImageLoaderManager {
         this.context = context;
     }
 
+    public boolean loaded = false;
+
     private Context context;
     private int imageID = 0;
     private List<String> urls;
 
-    public void recover(int id) {
-        imageID = id;
+    public void recover() {
+        try {
+            File recoveryFile = new File(context.getFilesDir(), HW3Activity.recoveryFile);
+            if (recoveryFile.exists()) {
+                Scanner scanner = new Scanner(recoveryFile);
+                if (scanner.hasNextInt()) {
+                    imageID = scanner.nextInt();
+                }
+            }
+        } catch (FileNotFoundException e) {
+            Log.d(TAG, "Recovery file not found");
+            e.printStackTrace();
+        }
+    }
+
+    public void save() {
+        try {
+            PrintWriter printWriter = new PrintWriter(new File(context.getFilesDir(), HW3Activity.recoveryFile));
+            printWriter.write(imageID);
+        } catch (FileNotFoundException e) {
+            Log.d(TAG, "Recovery file not found");
+            e.printStackTrace();
+        }
     }
 
     public void nextImage() {
@@ -43,7 +70,7 @@ public class ImageLoaderManager {
 
         imageID++;
 
-        File image = new File(context.getFilesDir(), HW3Activity.imageFilename);
+        File image = new File(context.getFilesDir(), HW3Activity.imageFile);
         try {
             image.delete();
             image.createNewFile();

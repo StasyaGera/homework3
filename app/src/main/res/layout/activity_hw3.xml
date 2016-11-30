@@ -8,6 +8,16 @@
     android:layout_height="match_parent"
     tools:context="com.hometasks.penguinni.homework3.HW3Activity">
 
+    <TextView
+        android:id="@+id/error"
+
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_centerInParent="true"
+        android:visibility="gone"
+
+        android:text="Не загружено"/>
+
     <ImageView
         android:id="@+id/image"
 

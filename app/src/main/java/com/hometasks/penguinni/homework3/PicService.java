@@ -30,6 +30,7 @@ public class PicService extends Service {
         Log.d(TAG, "on create");
 
         loaderManager = new ImageLoaderManager(getApplicationContext());
+        loaderManager.recover();
 
         receiver = new Receiver(this);
         registerReceiver(receiver, new IntentFilter(Intent.ACTION_CONFIGURATION_CHANGED));
@@ -47,6 +48,7 @@ public class PicService extends Service {
     public void onDestroy() {
         Log.d(TAG, "on destroy");
 
+        loaderManager.save();
         unregisterReceiver(receiver);
     }
 
