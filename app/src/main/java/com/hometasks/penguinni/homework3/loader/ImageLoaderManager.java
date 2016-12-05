@@ -1,7 +1,9 @@
 package com.hometasks.penguinni.homework3.loader;
 
+import android.content.BroadcastReceiver;
 import android.content.Context;
 import android.content.Intent;
+import android.content.IntentFilter;
 import android.os.AsyncTask;
 import android.support.v4.content.LocalBroadcastManager;
 import android.support.v4.util.Pair;
@@ -17,10 +19,10 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.io.PrintWriter;
 import java.net.HttpURLConnection;
+import java.net.MalformedURLException;
 import java.net.URL;
 import java.util.List;
 import java.util.Scanner;
-import java.util.concurrent.ExecutionException;
 
 /**
  * Created by penguinni on 29.11.16.
@@ -30,6 +32,15 @@ public class ImageLoaderManager {
     public ImageLoaderManager(Context context) {
         recoveryFile = new File(context.getFilesDir(), HW3Activity.recoveryFile);
         recover();
+
+        this.receiver = new BroadcastReceiver() {
+            @Override
+            public void onReceive(Context context, Intent intent) {
+                getNextImage();
+            }
+        };
+        LocalBroadcastManager.getInstance(context).registerReceiver(receiver, new IntentFilter("internal.pack_downloaded"));
+
         this.context = context;
     }
 
@@ -37,6 +48,7 @@ public class ImageLoaderManager {
     private int imageID = 0;
     private List<String> urls;
     private File recoveryFile;
+    private BroadcastReceiver receiver;
 
     public void clean() {
         this.imageID = 0;
@@ -81,63 +93,67 @@ public class ImageLoaderManager {
         if (urls == null || imageID % VKApi.COUNT == 0) {
             Log.d(TAG, "Obtaining next urls pack");
             getNextImagesPack();
+        } else {
+            getNextImage();
         }
 
         imageID++;
+    }
 
+    private void getNextImage() {
         File image = new File(context.getFilesDir(), HW3Activity.imageFile);
+
         try {
-            image.delete();
-            if (urls != null) {
+            if (!image.exists()) {
                 image.createNewFile();
-                new ImageLoader(context).execute((Pair<URL, File>) new Pair(new URL(urls.get(imageID % VKApi.COUNT)), image));
             }
         } catch (IOException e) {
             Log.e(TAG, e.getMessage());
             e.printStackTrace();
         }
+        try {
+            new ImageLoader(context).execute((Pair<URL, File>) new Pair(new URL(urls.get(imageID % VKApi.COUNT)), image));
+        } catch (MalformedURLException e) {
+            e.printStackTrace();
+        }
     }
 
     private void getNextImagesPack() {
-        AsyncTask<Integer, Integer, List<String>> nextPackGetter = new AsyncTask<Integer, Integer, List<String>>() {
+        AsyncTask<Integer, Integer, Void> nextPackGetter = new AsyncTask<Integer, Integer, Void>() {
             @Override
-            protected List<String> doInBackground(Integer... ids) {
-            Log.d(TAG, "Performing an API request");
+            protected Void doInBackground(Integer... ids) {
+                Log.d(TAG, "Performing an API request");
 
-            HttpURLConnection connection;
+                HttpURLConnection connection;
+                if (!Util.isConnectionAvailable(context, false)) {
+                    LocalBroadcastManager.getInstance(context).sendBroadcast(new Intent("internal.no_internet"));
+                    return null;
+                }
 
-            if (!Util.isConnectionAvailable(context, false)) {
-                LocalBroadcastManager.getInstance(context).sendBroadcast(new Intent("internal.no_internet"));
-                return null;
-            }
-
-            try {
-                connection = VKApi.getPhotosRequest(ids[0] / VKApi.COUNT);
-                if (connection.getResponseCode() == HttpURLConnection.HTTP_OK) {
-                    InputStream in = connection.getInputStream();
-                    List<String> result = ImagesPullParser.parseImages(in);
-                    if (result != null) {
-                        return result;
+                try {
+                    connection = VKApi.getPhotosRequest(ids[0] / VKApi.COUNT);
+                    if (connection.getResponseCode() == HttpURLConnection.HTTP_OK) {
+                        InputStream in = connection.getInputStream();
+                        List<String> result = ImagesPullParser.parseImages(in);
+                        if (result != null) {
+                            urls = result;
+                            LocalBroadcastManager.getInstance(context).sendBroadcast(new Intent("internal.pack_downloaded"));
+                        } else {
+                            LocalBroadcastManager.getInstance(context).sendBroadcast(new Intent("internal.error_occurred"));
+                        }
                     } else {
                         LocalBroadcastManager.getInstance(context).sendBroadcast(new Intent("internal.error_occurred"));
                     }
-                } else {
-                    LocalBroadcastManager.getInstance(context).sendBroadcast(new Intent("internal.error_occurred"));
+                } catch (IOException e) {
+                    Log.e(TAG, e.getMessage());
+                    e.printStackTrace();
                 }
-            } catch (IOException e) {
-                Log.e(TAG, e.getMessage());
-                e.printStackTrace();
-            }
 
-            return null;
+                return null;
             }
         };
 
-        try {
-            this.urls = nextPackGetter.execute(imageID).get();
-        } catch (InterruptedException | ExecutionException e) {
-            e.printStackTrace();
-        }
+        nextPackGetter.execute(imageID);
     }
 
     private final String TAG = "ImageLoaderManager";
