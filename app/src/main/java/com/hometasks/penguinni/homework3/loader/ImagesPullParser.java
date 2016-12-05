@@ -6,6 +6,7 @@ import android.util.Log;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
+import java.io.UnsupportedEncodingException;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -14,42 +15,62 @@ import java.util.List;
  */
 
 public class ImagesPullParser {
-    static List<String> parseImages(InputStream in) throws IOException {
-        return parseImages(new JsonReader(new InputStreamReader(in, "UTF-8")));
+    static List<String> parseImages(InputStream in) {
+        try {
+            return parseImages(new JsonReader(new InputStreamReader(in, "UTF-8")));
+        } catch (UnsupportedEncodingException e) {
+            e.printStackTrace();
+        }
+
+        return null;
     }
 
-    private static List<String> parseImages(JsonReader reader) throws IOException {
-        reader.beginObject();
-        switch (reader.nextName()) {
-            case "response":
-                break;
-            case "error":
-                return null;
-            default:
-                break;
-        }
-        reader.beginArray();
-
-        ArrayList<String> images = new ArrayList<>();
-        while (reader.hasNext()) {
+    private static List<String> parseImages(JsonReader reader) {
+        ArrayList<String> images = null;
+        try {
             reader.beginObject();
+            switch (reader.nextName()) {
+                case "response":
+                    break;
+                case "error":
+                    reader.beginObject();
+                    while (!reader.nextName().equals("error_msg")) {
+                        reader.skipValue();
+                    }
+                    Log.e(TAG, reader.nextString());
+                    return null;
+                default:
+                    break;
+            }
+            reader.beginArray();
 
-            String token;
+            images = new ArrayList<>();
             while (reader.hasNext()) {
-                token = reader.nextName();
-                if (token != null && token.equals("src_big")) {
-                    images.add(reader.nextString());
-                } else {
-                    reader.skipValue();
+                reader.beginObject();
+
+                String token;
+                while (reader.hasNext()) {
+                    token = reader.nextName();
+                    if (token != null && token.equals("src_big")) {
+                        images.add(reader.nextString());
+                    } else {
+                        reader.skipValue();
+                    }
                 }
+
+                reader.endObject();
             }
 
+            reader.endArray();
             reader.endObject();
-        }
 
-        reader.endArray();
-        reader.endObject();
+        } catch (IOException e) {
+            Log.d(TAG, "Cannot parse json");
+            e.printStackTrace();
+        }
 
         return images;
     }
+
+    private static final String TAG = "ImagesPullParser";
 }

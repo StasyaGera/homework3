@@ -6,18 +6,22 @@ import android.content.Context;
 import android.content.Intent;
 import android.content.IntentFilter;
 import android.os.IBinder;
+import android.support.v4.content.LocalBroadcastManager;
 import android.util.Log;
-import android.widget.Toast;
 
 import com.hometasks.penguinni.homework3.loader.ImageLoaderManager;
-
-import java.io.File;
 
 public class PicService extends Service {
     public PicService() {}
 
     private ImageLoaderManager loaderManager;
     private Receiver receiver;
+    private BroadcastReceiver localReceiver;
+
+    public void reset() {
+        Log.d(TAG, "reset");
+        loaderManager.clean();
+    }
 
     void loadNext() {
         Log.d(TAG, "load next image");
@@ -29,11 +33,18 @@ public class PicService extends Service {
         super.onCreate();
         Log.d(TAG, "on create");
 
-        loaderManager = new ImageLoaderManager(getApplicationContext());
-        loaderManager.recover();
-
         receiver = new Receiver(this);
         registerReceiver(receiver, new IntentFilter(Intent.ACTION_CONFIGURATION_CHANGED));
+
+        localReceiver = new BroadcastReceiver() {
+            @Override
+            public void onReceive(Context context, Intent intent) {
+                reset();
+            }
+        };
+        LocalBroadcastManager.getInstance(getApplicationContext()).registerReceiver(localReceiver, new IntentFilter("service.restart"));
+
+        loaderManager = new ImageLoaderManager(getApplicationContext());
     }
 
     @Override
@@ -50,6 +61,7 @@ public class PicService extends Service {
 
         loaderManager.save();
         unregisterReceiver(receiver);
+        LocalBroadcastManager.getInstance(getApplicationContext()).unregisterReceiver(localReceiver);
     }
 
     @Override

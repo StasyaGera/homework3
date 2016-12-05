@@ -1,6 +1,7 @@
 package com.hometasks.penguinni.homework3.api;
 
 import android.net.Uri;
+import android.util.Log;
 
 import java.io.IOException;
 import java.net.HttpURLConnection;
@@ -28,6 +29,7 @@ public class VKApi {
                 .appendQueryParameter("rev", "1")
                 .build();
 
+        Log.d("VKApi", "built an uri: " + uri.toString());
         return (HttpURLConnection) new URL(uri.toString()).openConnection();
     }
 }

@@ -7,15 +7,33 @@
     android:layout_height="match_parent"
     tools:context="com.hometasks.penguinni.homework3.HW3Activity">
 
+    <ProgressBar
+        android:id="@+id/loading"
+
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_centerInParent="true"
+        android:visibility="gone" />
+
     <TextView
-        android:id="@+id/error"
+        android:id="@+id/error_view"
 
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:layout_centerInParent="true"
         android:visibility="gone"
 
-        android:text="Не загружено"/>
+        android:text="Возникла ошибка при загрузке файла"/>
+
+    <TextView
+        android:id="@+id/no_internet"
+
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_centerInParent="true"
+        android:visibility="gone"
+
+        android:text="Отсутствует подключение"/>
 
     <ImageView
         android:id="@+id/image"
@@ -50,5 +68,15 @@
             android:layout_weight="1"
 
             android:text="stop" />
+
+        <Button
+            android:id="@+id/restart_btn"
+
+            android:layout_width="wrap_content"
+            android:layout_height="0dp"
+            android:layout_weight="1"
+
+            android:text="restart" />
+
     </LinearLayout>
 </RelativeLayout>
